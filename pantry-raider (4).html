@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pantry Raider</title>
+<style>
+:root {
+  --green:      #2A5C24;
+  --green-mid:  #4A8040;
+  --green-lite: #B8D4B4;
+  --green-tint: #EBF4EA;
+  --cream:      #F5F1E8;
+  --cream-dk:   #E4DDD0;
+  --ink:        #1A1A14;
+  --ink-mid:    #4C4C3C;
+  --ink-dim:    #848470;
+  --stretch:    #C05418;
+  --stretch-bg: #FDF0E6;
+  --serif:      Georgia, 'Times New Roman', Times, serif;
+  --r:          8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--serif);
+  background: #DDDACC;
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+button { cursor: pointer; }
+input, textarea, button, select { font-family: inherit; }
+textarea { resize: vertical; }
+
+#app {
+  width: 100%;
+  max-width: 440px;
+  min-height: 100vh;
+  background: var(--cream);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 40px rgba(0,0,0,0.18);
+}
+
+/* ── VIEWS ── */
+.view { display: none; flex-direction: column; flex: 1; min-height: 100vh; }
+.view.active { display: flex; }
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--green);
+  color: var(--cream);
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 0.01em;
+  color: var(--cream);
+}
+.topbar-back {
+  background: none;
+  border: none;
+  color: rgba(245,241,232,0.78);
+  font-size: 13.5px;
+  padding: 4px 0;
+  letter-spacing: 0.02em;
+  transition: color 0.12s;
+}
+.topbar-back:hover { color: var(--cream); }
+.topbar-icon {
+  background: none;
+  border: none;
+  color: rgba(245,241,232,0.78);
+  font-size: 19px;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.12s;
+}
+.topbar-icon:hover { color: var(--cream); }
+
+/* ── SCROLL BODY ── */
+.scroll-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 18px 32px;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-body.pb-chat { padding-bottom: 74px; }
+
+/* ── SETUP ── */
+.setup-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px 52px;
+  min-height: 100vh;
+}
+.setup-logo { text-align: center; margin-bottom: 28px; }
+.setup-logo h1 { font-size: 25px; color: var(--green); margin-top: 10px; letter-spacing: -0.01em; }
+.setup-logo p { font-size: 13px; color: var(--ink-dim); font-style: italic; margin-top: 3px; }
+
+.pdots { display: flex; gap: 7px; justify-content: center; margin-bottom: 26px; }
+.pdot { width: 8px; height: 8px; border-radius: 50%; background: var(--green-lite); transition: background 0.22s; }
+.pdot.on { background: var(--green); }
+
+.step { display: none; width: 100%; max-width: 360px; }
+.step.on { display: block; }
+.step h2 { font-size: 18px; color: var(--green); margin-bottom: 5px; }
+.step > p { font-size: 13px; color: var(--ink-mid); font-style: italic; margin-bottom: 16px; line-height: 1.5; }
+.step > p.sub { margin-top: 14px; margin-bottom: 10px; }
+
+/* ── INPUTS ── */
+.field {
+  width: 100%;
+  background: white;
+  border: 1.5px solid var(--green-lite);
+  border-radius: var(--r);
+  padding: 11px 13px;
+  font-size: 15px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.14s;
+  margin-bottom: 14px;
+  display: block;
+}
+.field:focus { border-color: var(--green); }
+.field::placeholder { color: var(--ink-dim); font-style: italic; }
+textarea.field { min-height: 70px; }
+.flbl { display: block; font-size: 11.5px; color: var(--ink-dim); font-style: italic; margin-bottom: 5px; letter-spacing: 0.03em; }
+
+/* ── CHIPS ── */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.chip {
+  padding: 6px 14px;
+  border: 1.5px solid var(--green-lite);
+  border-radius: 30px;
+  font-size: 13px;
+  color: var(--ink-mid);
+  background: white;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.13s;
+}
+.chip:hover { border-color: var(--green-mid); color: var(--green); }
+.chip.on { background: var(--green); border-color: var(--green); color: white; }
+
+/* ── EXP CARDS ── */
+.exp-cards { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.exp-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--green-lite);
+  border-radius: var(--r);
+  background: white;
+  cursor: pointer;
+  transition: all 0.13s;
+}
+.exp-card:hover { border-color: var(--green-mid); }
+.exp-card.on { border-color: var(--green); background: var(--green-tint); }
+.eci { font-size: 20px; flex-shrink: 0; }
+.exp-card h4 { font-size: 13.5px; }
+.exp-card p { font-size: 11.5px; color: var(--ink-dim); font-style: italic; margin-top: 1px; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: block;
+  width: 100%;
+  padding: 13px 20px;
+  border: none;
+  border-radius: var(--r);
+  font-size: 15px;
+  font-weight: bold;
+  text-align: center;
+  transition: all 0.13s;
+  letter-spacing: 0.01em;
+}
+.btn-p { background: var(--green); color: white; }
+.btn-p:hover { background: var(--green-mid); }
+.btn-p:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-g { background: transparent; border: 1.5px solid var(--green-lite); color: var(--ink-mid); }
+.btn-g:hover { border-color: var(--green); color: var(--green); }
+.btn-danger { background: transparent; border: 1.5px solid #e0a898; color: #A03820; }
+.gap { height: 10px; }
+
+/* ── HOME ── */
+.home-hello h2 { font-size: 20px; color: var(--green); }
+.home-hello p { font-size: 13px; color: var(--ink-mid); font-style: italic; margin-top: 2px; margin-bottom: 20px; }
+.slbl { display: block; font-size: 11.5px; color: var(--ink-dim); font-style: italic; margin-bottom: 7px; letter-spacing: 0.03em; }
+
+.ing-box {
+  background: white;
+  border: 1.5px solid var(--green-lite);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  margin-bottom: 20px;
+  transition: border-color 0.14s;
+}
+.ing-box:focus-within { border-color: var(--green); }
+.ing-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.ing-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--green-tint);
+  border: 1px solid var(--green-lite);
+  border-radius: 30px;
+  padding: 3px 9px 3px 11px;
+  font-size: 12.5px;
+  color: var(--green);
+}
+.ing-chip button { background: none; border: none; color: var(--green-mid); font-size: 15px; line-height: 1; padding: 0 0 0 1px; }
+.ing-chip button:hover { color: var(--green); }
+.ing-row { display: flex; align-items: center; gap: 8px; }
+.ing-row input { flex: 1; border: none; background: none; font-size: 14px; color: var(--ink); outline: none; }
+.ing-row input::placeholder { color: var(--ink-dim); font-style: italic; }
+.ing-add {
+  background: var(--green);
+  color: white;
+  border: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.13s;
+}
+.ing-add:hover { background: var(--green-mid); }
+
+.mood-grid { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 22px; }
+.mood-pill {
+  padding: 7px 14px;
+  border: 1.5px solid var(--green-lite);
+  border-radius: 30px;
+  font-size: 13px;
+  color: var(--ink-mid);
+  background: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  user-select: none;
+  transition: all 0.13s;
+}
+.mood-pill:hover { border-color: var(--green-mid); color: var(--green); }
+.mood-pill.on { background: var(--green); border-color: var(--green); color: white; }
+
+/* Dashboard Lists (Saved / Recents) */
+.dash-section { margin-top: 24px; margin-bottom: 12px; }
+.dash-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.dash-item {
+  background: white;
+  padding: 10px 14px;
+  border-radius: var(--r);
+  border: 1.5px solid var(--cream-dk);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+.dash-item:hover { border-color: var(--green-mid); }
+.dash-item-info h5 { font-size: 14px; color: var(--ink); font-weight: bold; }
+.dash-item-info p { font-size: 11px; color: var(--ink-dim); font-style: italic; }
+
+/* ── LOADING ── */
+.loading-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px 24px;
+}
+.spin { font-size: 44px; animation: rot 2s linear infinite; display: block; }
+@keyframes rot { to { transform: rotate(360deg); } }
+.loading-body p { font-size: 15px; color: var(--ink-mid); font-style: italic; text-align: center; line-height: 1.65; }
+
+/* ── BOT BUBBLE ── */
+.bot-msg {
+  background: var(--green);
+  color: #EDF6EB;
+  border-radius: 4px 14px 14px 14px;
+  padding: 13px 15px;
+  font-size: 14px;
+  line-height: 1.65;
+  margin-bottom: 16px;
+}
+
+/* ── RECIPE CARDS ── */
+.recipe-card {
+  background: white;
+  border: 1.5px solid var(--cream-dk);
+  border-radius: var(--r);
+  padding: 14px 14px 12px;
+  margin-bottom: 11px;
+  cursor: pointer;
+  transition: border-color 0.14s, box-shadow 0.14s, transform 0.14s;
+  box-shadow: 0 1px 6px rgba(42,92,36,0.07);
+}
+.recipe-card:hover {
+  border-color: var(--green-mid);
+  box-shadow: 0 4px 18px rgba(42,92,36,0.13);
+  transform: translateY(-1px);
+}
+.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.card-name { font-size: 15.5px; font-weight: bold; line-height: 1.25; flex: 1; }
+.card-score { text-align: right; flex-shrink: 0; }
+.card-score-n { font-size: 16px; font-weight: bold; color: var(--green); display: block; }
+.card-score-l { font-size: 10px; color: var(--ink-dim); font-style: italic; }
+.card-desc { font-size: 12.5px; color: var(--ink-mid); font-style: italic; line-height: 1.5; margin-bottom: 9px; }
+.card-tags { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.tag { font-size: 11px; background: var(--cream-dk); color: var(--ink-dim); padding: 3px 8px; border-radius: 20px; }
+.stretch-tag { font-size: 11px; background: var(--stretch-bg); color: var(--stretch); border: 1px solid #F0C0A0; padding: 3px 9px; border-radius: 20px; font-weight: bold; }
+.card-why { font-size: 11px; color: var(--ink-dim); font-style: italic; margin-top: 6px; }
+.card-stretch-why { font-size: 11px; color: var(--stretch); font-style: italic; margin-top: 3px; }
+
+/* ── LEAF METER (signature element) ── */
+.leaf-meter { display: flex; gap: 2px; margin-top: 8px; }
+.lseg { flex: 1; height: 3px; border-radius: 2px; background: var(--cream-dk); }
+.lseg.on { background: var(--green-mid); }
+
+/* ── CHAT BAR ── */
+.chat-bar {
+  position: sticky;
+  bottom: 0;
+  background: rgba(245,241,232,0.96);
+  backdrop-filter: blur(6px);
+  border-top: 1px solid var(--cream-dk);
+  padding: 9px 14px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.chat-in {
+  flex: 1;
+  background: white;
+  border: 1.5px solid var(--green-lite);
+  border-radius: 30px;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.13s;
+}
+.chat-in:focus { border-color: var(--green); }
+.chat-in::placeholder { color: var(--ink-dim); font-style: italic; }
+.chat-go {
+  background: var(--green);
+  color: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.13s;
+}
+.chat-go:hover { background: var(--green-mid); }
+.chat-go:disabled { opacity: 0.44; cursor: not-allowed; }
+
+/* ── USER CHAT BUBBLE ── */
+.user-bubble {
+  background: var(--cream-dk);
+  border-radius: 14px 4px 14px 14px;
+  padding: 9px 13px;
+  font-size: 13px;
+  color: var(--ink-mid);
+  text-align: right;
+  margin-bottom: 10px;
+  font-style: italic;
+}
+
+/* ── DETAIL ── */
+.detail-hero {
+  background: var(--green);
+  color: #EDF6EB;
+  padding: 20px 18px 18px;
+  flex-shrink: 0;
+}
+.detail-hero h1 { font-size: 21px; line-height: 1.2; margin-bottom: 6px; }
+.detail-tagline { font-size: 13px; opacity: 0.80; font-style: italic; margin-bottom: 14px; }
+.detail-times { display: flex; gap: 16px; }
+.dt .dt-n { font-size: 16px; font-weight: bold; }
+.dt .dt-l { font-size: 10px; opacity: 0.65; text-transform: uppercase; letter-spacing: 0.08em; }
+
+.dsec { padding: 16px 18px; border-bottom: 1px solid var(--cream-dk); }
+.dsec h3 { font-size: 11px; color: var(--green); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 11px; font-style: italic; }
+
+.ing-row-d {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--cream-dk);
+  font-size: 13.5px;
+}
+.ing-row-d:last-child { border-bottom: none; }
+.idot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.idot.has { background: var(--green-mid); }
+.idot.need { background: var(--stretch); }
+.ing-n { flex: 1; }
+.ing-amt { font-size: 12px; color: var(--ink-dim); font-style: italic; }
+.ing-need-lbl { font-size: 10.5px; color: var(--stretch); }
+
+.step-row { display: flex; gap: 11px; margin-bottom: 13px; align-items: flex-start; }
+.step-n {
+  width: 25px; height: 25px;
+  border-radius: 50%;
+  background: var(--green-tint);
+  border: 1.5px solid var(--green-lite);
+  color: var(--green);
+  font-weight: bold;
+  font-size: 11.5px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.step-t { font-size: 14px; line-height: 1.65; flex: 1; }
+
+.tips-box {
+  background: var(--green-tint);
+  border-left: 3px solid var(--green-lite);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: 11px 13px;
+  font-size: 13px;
+  color: var(--ink-mid);
+  font-style: italic;
+  line-height: 1.6;
+}
+
+/* ── FEEDBACK ── */
+.fb-title { font-size: 18px; color: var(--green); margin-bottom: 4px; }
+.fb-sub { font-size: 13px; color: var(--ink-mid); font-style: italic; margin-bottom: 20px; }
+.emoji-row { display: flex; gap: 9px; margin-bottom: 20px; }
+.emoji-btn {
+  flex: 1; padding: 13px 8px;
+  border: 1.5px solid var(--cream-dk);
+  border-radius: var(--r); background: white;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  font-size: 23px; cursor: pointer; transition: all 0.13s;
+}
+.emoji-btn span { font-size: 10.5px; font-family: var(--serif); color: var(--ink-dim); font-style: italic; }
+.emoji-btn:hover { border-color: var(--green); }
+.emoji-btn.on { border-color: var(--green); background: var(--green-tint); }
+.again-row { display: flex; gap: 8px; margin-bottom: 20px; }
+.again-btn {
+  flex: 1; padding: 10px 8px;
+  border: 1.5px solid var(--cream-dk);
+  border-radius: var(--r); background: white;
+  font-size: 13px; color: var(--ink-mid); cursor: pointer;
+  font-family: var(--serif); transition: all 0.13s;
+}
+.again-btn:hover { border-color: var(--green); color: var(--green); }
+.again-btn.on { border-color: var(--green); background: var(--green-tint); color: var(--green); font-weight: bold; }
+
+/* ── SETTINGS ── */
+.ssec { padding: 16px 18px; border-bottom: 1px solid var(--cream-dk); }
+.ssec h3 { font-size: 11px; color: var(--green); text-transform: uppercase; letter-spacing: 0.09em; font-style: italic; margin-bottom: 11px; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--green);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-size: 13.5px;
+  opacity: 0;
+  transition: opacity 0.25s, transform 0.25s;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 100;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, .spin { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div id="v-setup" class="view">
+  <div class="setup-screen">
+    <div class="setup-logo">
+      <svg width="62" height="62" viewBox="0 0 62 62" fill="none">
+        <circle cx="31" cy="31" r="31" fill="#EBF4EA"/>
+        <path d="M31 9C19 15 12 27 17 39C22 51 31 54 31 54C31 54 40 51 45 39C50 27 43 15 31 9Z" fill="#2A5C24"/>
+        <line x1="31" y1="29" x2="22" y2="20" stroke="#A8C9A4" stroke-width="2" stroke-linecap="round"/>
+        <line x1="31" y1="35" x2="40" y2="25" stroke="#A8C9A4" stroke-width="2" stroke-linecap="round"/>
+        <line x1="31" y1="54" x2="31" y2="60" stroke="#2A5C24" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      <h1>Pantry Raider</h1>
+      <p>Your personal recipe companion</p>
+    </div>
+    <div class="pdots">
+      <div class="pdot on" id="d1"></div>
+      <div class="pdot" id="d2"></div>
+      <div class="pdot" id="d3"></div>
+    </div>
+
+    <div class="step on" id="s1">
+      <h2>What should I call you?</h2>
+      <p>I keep it personal around here.</p>
+      <label class="flbl" for="inp-name">First name</label>
+      <input id="inp-name" class="field" type="text" placeholder="e.g. Jordan" autocomplete="given-name"
+        onkeydown="if(event.key==='Enter')sNext(1)">
+      <button class="btn btn-p" onclick="sNext(1)">Next →</button>
+    </div>
+
+    <div class="step" id="s2">
+      <h2>What flavors excite you?</h2>
+      <p>Pick as many as feel true — this helps me read your palate.</p>
+      <div class="chips" id="taste-c">
+        <div class="chip" data-v="sweet" onclick="tog(this)">🍯 Sweet</div>
+        <div class="chip" data-v="savory" onclick="tog(this)">🧅 Savory</div>
+        <div class="chip" data-v="spicy" onclick="tog(this)">🌶️ Spicy</div>
+        <div class="chip" data-v="smoky" onclick="tog(this)">🔥 Smoky</div>
+        <div class="chip" data-v="tangy" onclick="tog(this)">🍋 Tangy</div>
+        <div class="chip" data-v="umami" onclick="tog(this)">🍄 Umami</div>
+        <div class="chip" data-v="mild" onclick="tog(this)">🌿 Mild</div>
+        <div class="chip" data-v="adventurous" onclick="tog(this)">✨ Adventurous</div>
+      </div>
+      <button class="btn btn-p" onclick="sNext(2)">Next →</button>
+    </div>
+
+    <div class="step" id="s3">
+      <h2>Last few things…</h2>
+      <p>Any dietary needs?</p>
+      <div class="chips" id="diet-c">
+        <div class="chip" data-v="vegetarian" onclick="tog(this)">🥦 Vegetarian</div>
+        <div class="chip" data-v="vegan" onclick="tog(this)">🌱 Vegan</div>
+        <div class="chip" data-v="gluten-free" onclick="tog(this)">🌾 Gluten-free</div>
+        <div class="chip" data-v="dairy-free" onclick="whites(this)">🥛 Dairy-free</div>
+        <div class="chip" data-v="none" onclick="tog(this)">No restrictions</div>
+      </div>
+      <p class="sub">How comfortable are you cooking?</p>
+      <div class="exp-cards" id="exp-c">
+        <div class="exp-card on" data-v="beginner" onclick="selExp(this)">
+          <span class="eci">🌱</span>
+          <div><h4>Beginner</h4><p>Keep it simple — I'm still learning</p></div>
+        </div>
+        <div class="exp-card" data-v="intermediate" onclick="selExp(this)">
+          <span class="eci">🍳</span>
+          <div><h4>Intermediate</h4><p>Comfortable with most techniques</p></div>
+        </div>
+        <div class="exp-card" data-v="adventurous" onclick="selExp(this)">
+          <span class="eci">👨‍🍳</span>
+          <div><h4>Adventurous</h4><p>Bring on the complexity</p></div>
+        </div>
+      </div>
+      <button class="btn btn-p" onclick="sFinish()">Let's cook! 🌿</button>
+    </div>
+  </div>
+</div>
+
+<div id="v-home" class="view">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <svg width="20" height="20" viewBox="0 0 62 62" fill="none">
+        <path d="M31 9C19 15 12 27 17 39C22 51 31 54 31 54C31 54 40 51 45 39C50 27 43 15 31 9Z" fill="#A8C9A4"/>
+        <line x1="31" y1="54" x2="31" y2="60" stroke="#A8C9A4" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      Pantry Raider
+    </div>
+    <button class="topbar-icon" onclick="goSettings()" title="Profile &amp; settings">⚙</button>
+  </div>
+  <div class="scroll-body">
+    <div class="home-hello">
+      <h2 id="h-greet">Hey there! 👋</h2>
+      <p>What's in the pantry today?</p>
+    </div>
+
+    <span class="slbl">Add your ingredients</span>
+    <div class="ing-box">
+      <div class="ing-chips" id="ing-chips"></div>
+      <div class="ing-row">
+        <input type="text" id="ing-input" placeholder="Type ingredient, press Enter or comma…" autocomplete="off"
+          onkeydown="if(event.key==='Enter'||event.key===','){event.preventDefault();addIng();}">
+        <button class="ing-add" onclick="addIng()" aria-label="Add ingredient">+</button>
+      </div>
+    </div>
+
+    <span class="slbl">What's the vibe? &amp; Serving Details</span>
+    <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+      <div style="flex: 1;">
+        <label class="flbl">Portion Size</label>
+        <select id="home-size" class="field" style="margin-bottom: 0;">
+          <option value="light">Light Portion</option>
+          <option value="normal" selected>Normal Portion</option>
+          <option value="hearty">Hearty/Big Portion</option>
+        </select>
+      </div>
+      <div style="flex: 1;">
+        <label class="flbl">How many people?</label>
+        <input type="number" id="home-servings" class="field" value="2" min="1" max="20" style="margin-bottom: 0;">
+      </div>
+    </div>
+
+    <div class="mood-grid">
+      <div class="mood-pill" data-m="quick" onclick="selMood(this)">⚡ Quick</div>
+      <div class="mood-pill" data-m="easy" onclick="selMood(this)">😌 Easy</div>
+      <div class="mood-pill" data-m="delectable" onclick="selMood(this)">✨ Delectable</div>
+      <div class="mood-pill" data-m="sweet" onclick="selMood(this)">🍯 Sweet</div>
+      <div class="mood-pill" data-m="savory" onclick="selMood(this)">🧅 Savory</div>
+      <div class="mood-pill" data-m="spicy" onclick="selMood(this)">🌶 Spicy</div>
+      <div class="mood-pill" data-m="healthy" onclick="selMood(this)">🥗 Healthy</div>
+      <div class="mood-pill" data-m="surprise" onclick="selMood(this)">🎲 Surprise me</div>
+    </div>
+
+    <button class="btn btn-p" onclick="findRecipes()">Find Recipes 🌿</button>
+
+    <div class="dash-section">
+      <span class="slbl">❤️ Saved Recipes</span>
+      <div id="saved-recipes-list" class="dash-list"></div>
+    </div>
+
+    <div class="dash-section">
+      <span class="slbl">⏱️ Recently Viewed / Made</span>
+      <div id="recent-recipes-list" class="dash-list"></div>
+    </div>
+  </div>
+</div>
+
+<div id="v-loading" class="view">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <svg width="20" height="20" viewBox="0 0 62 62" fill="none">
+        <path d="M31 9C19 15 12 27 17 39C22 51 31 54 31 54C31 54 40 51 45 39C50 27 43 15 31 9Z" fill="#A8C9A4"/>
+      </svg>
+      Pantry Raider
+    </div>
+  </div>
+  <div class="loading-body">
+    <span class="spin">🌿</span>
+    <p id="load-txt">Raiding your pantry…<br>give me just a moment.</p>
+  </div>
+</div>
+
+<div id="v-suggestions" class="view">
+  <div class="topbar">
+    <button class="topbar-back" onclick="go('home')">← Back</button>
+    <div class="topbar-brand" style="font-size:15px">Suggestions</div>
+    <div style="width:44px"></div>
+  </div>
+  <div class="scroll-body pb-chat" id="sugg-scroll">
+    <div class="bot-msg" id="bot-bubble">Here's what I found!</div>
+    <div id="r-cards"></div>
+  </div>
+  <div class="chat-bar">
+    <input class="chat-in" type="text" id="chat-in" placeholder="Ask for something different…"
+      onkeydown="if(event.key==='Enter')sendChat();">
+    <button class="chat-go" id="chat-go" onclick="sendChat()">→</button>
+  </div>
+</div>
+
+<div id="v-detail" class="view">
+  <div class="topbar">
+    <button class="topbar-back" id="detail-back-btn" onclick="go('suggestions')">← Recipes</button>
+    <button class="topbar-icon" id="save-recipe-btn" onclick="toggleSaveCurrentRecipe()">🤍</button>
+  </div>
+  <div id="d-hero" class="detail-hero"></div>
+  <div class="scroll-body" style="padding:0 0 16px">
+    <div id="d-body"></div>
+    <div style="padding:16px 18px 8px">
+      <button class="btn btn-p" onclick="iMadeThis()">I Made This! 🍽</button>
+    </div>
+  </div>
+</div>
+
+<div id="v-feedback" class="view">
+  <div class="topbar">
+    <button class="topbar-back" onclick="go('home')">← Home</button>
+    <div class="topbar-brand" style="font-size:15px">Feedback</div>
+    <div style="width:44px"></div>
+  </div>
+  <div class="scroll-body">
+    <h2 class="fb-title" id="fb-title">How was the dish?</h2>
+    <p class="fb-sub">Your feedback shapes future suggestions.</p>
+
+    <span class="slbl">How did it go?</span>
+    <div class="emoji-row">
+      <button class="emoji-btn" data-r="loved" onclick="selRating(this)">😍<span>Loved it</span></button>
+      <button class="emoji-btn" data-r="okay" onclick="selRating(this)">😐<span>It was okay</span></button>
+      <button class="emoji-btn" data-r="nope" onclick="selRating(this)">😞<span>Not for me</span></button>
+    </div>
+
+    <span class="slbl">Would you make it again?</span>
+    <div class="again-row">
+      <button class="again-btn" data-a="yes" onclick="selAgain(this)">Yes!</button>
+      <button class="again-btn" data-a="maybe" onclick="selAgain(this)">Maybe</button>
+      <button class="again-btn" data-a="no" onclick="selAgain(this)">No</button>
+    </div>
+
+    <span class="slbl">Did you add any off-recipe modifications or side elements?</span>
+    <input type="text" class="field" id="fb-custom-adds" placeholder="e.g. Added extra cheese, served with hot sauce...">
+
+    <span class="slbl">Anything to add? (optional)</span>
+    <textarea class="field" id="fb-notes" placeholder="Too spicy, needed more lemon..."></textarea>
+
+    <button class="btn btn-p" onclick="submitFb()">Save &amp; keep cooking 🌿</button>
+  </div>
+</div>
+
+<div id="v-settings" class="view">
+  <div class="topbar">
+    <button class="topbar-back" onclick="go('home')">← Back</button>
+    <div class="topbar-brand" style="font-size:15px">Your Profile</div>
+    <div style="width:44px"></div>
+  </div>
+  <div class="scroll-body">
+    <div class="ssec">
+      <h3>Name</h3>
+      <input class="field" id="set-name" type="text" placeholder="Your name" style="margin-bottom:0">
+    </div>
+    <div class="ssec">
+      <h3>Default Portion Profile</h3>
+      <select id="set-size" class="field" style="margin-bottom: 0;">
+        <option value="light">Light Portion</option>
+        <option value="normal" selected>Normal Portion</option>
+        <option value="hearty">Hearty/Big Portion</option>
+      </select>
+    </div>
+    <div class="ssec">
+      <h3>Taste Palette</h3>
+      <div class="chips" id="set-taste">
+        <div class="chip" data-v="sweet" onclick="tog(this)">🍯 Sweet</div>
+        <div class="chip" data-v="savory" onclick="tog(this)">🧅 Savory</div>
+        <div class="chip" data-v="spicy" onclick="tog(this)">🌶️ Spicy</div>
+        <div class="chip" data-v="smoky" onclick="tog(this)">🔥 Smoky</div>
+        <div class="chip" data-v="tangy" onclick="tog(this)">🍋 Tangy</div>
+        <div class="chip" data-v="umami" onclick="tog(this)">🍄 Umami</div>
+        <div class="chip" data-v="mild" onclick="tog(this)">🌿 Mild</div>
+        <div class="chip" data-v="adventurous" onclick="tog(this)">✨ Adventurous</div>
+      </div>
+    </div>
+    <div class="ssec">
+      <h3>Dietary Needs</h3>
+      <div class="chips" id="set-diet">
+        <div class="chip" data-v="vegetarian" onclick="tog(this)">🥦 Vegetarian</div>
+        <div class="chip" data-v="vegan" onclick="tog(this)">🌱 Vegan</div>
+        <div class="chip" data-v="gluten-free" onclick="tog(this)">🌾 Gluten-free</div>
+        <div class="chip" data-v="dairy-free" onclick="tog(this)">🥛 Dairy-free</div>
+        <div class="chip" data-v="none" onclick="tog(this)">No restrictions</div>
+      </div>
+    </div>
+    <div class="ssec">
+      <h3>Cooking Experience</h3>
+      <div class="exp-cards" id="set-exp">
+        <div class="exp-card" data-v="beginner" onclick="selExp(this,true)"><span class="eci">🌱</span><div><h4>Beginner</h4><p>Keep it simple</p></div></div>
+        <div class="exp-card" data-v="intermediate" onclick="selExp(this,true)"><span class="eci">🍳</span><div><h4>Intermediate</h4><p>Most techniques are fine</p></div></div>
+        <div class="exp-card" data-v="adventurous" onclick="selExp(this,true)"><span class="eci">👨‍🍳</span><div><h4>Adventurous</h4><p>Bring on the complexity</p></div></div>
+      </div>
+    </div>
+    <div class="ssec">
+      <h3>Groq API Key</h3>
+      <input class="field" id="set-key" type="password" placeholder="gsk_…" style="margin-bottom:4px">
+      <p style="font-size:11px;color:var(--ink-dim);font-style:italic;margin-bottom:0">Stored locally on this device only.</p>
+    </div>
+    <div class="ssec">
+      <button class="btn btn-p" onclick="saveSettings()">Save Changes</button>
+      <div class="gap"></div>
+      <button class="btn btn-danger" onclick="resetAll()">Reset everything</button>
+    </div>
+  </div>
+</div>
+
+</div><div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let profile = null;
+let ings = [];
+let curMood = null;
+let curRecipes = [];
+let selRecipe = null;
+let convo = [];
+let savedRecipes = [];
+let recentRecipes = [];
+let detailBackDestination = 'suggestions';
+
+const ALL_VIEWS = ['setup','home','loading','suggestions','detail','feedback','settings'];
+
+// ══════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════
+(function init() {
+  try {
+    const saved = localStorage.getItem('pr_v2');
+    if (saved) { 
+      profile = JSON.parse(saved); 
+      if(!profile.portionSize) profile.portionSize = 'normal';
+      if(!profile.savedRecipes) profile.savedRecipes = [];
+      if(!profile.recentRecipes) profile.recentRecipes = [];
+      savedRecipes = profile.savedRecipes;
+      recentRecipes = profile.recentRecipes;
+      
+      document.getElementById('home-size').value = profile.portionSize;
+      go('home'); 
+      greet(); 
+      renderDashboards();
+    }
+    else go('setup');
+  } catch(e) { go('setup'); }
+})();
+
+function go(v) {
+  ALL_VIEWS.forEach(n => {
+    const el = document.getElementById('v-' + n);
+    if (el) el.classList.toggle('active', n === v);
+  });
+  window.scrollTo(0,0);
+}
+
+function saveP() {
+  try { 
+    if(profile) {
+      profile.savedRecipes = savedRecipes;
+      profile.recentRecipes = recentRecipes;
+    }
+    localStorage.setItem('pr_v2', JSON.stringify(profile)); 
+  } catch(e) {}
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ══════════════════════════════════════
+// SETUP WIZARD
+// ══════════════════════════════════════
+function sNext(step) {
+  if (step === 1) {
+    const name = document.getElementById('inp-name').value.trim();
+    if (!name) { toast('Tell me your name first!'); return; }
+    ['s1','s2','s3'].forEach(id => document.getElementById(id).classList.remove('on'));
+    ['d1','d2','d3'].forEach(id => document.getElementById(id).classList.remove('on'));
+    document.getElementById('s2').classList.add('on');
+    document.getElementById('d2').classList.add('on');
+  } else {
+    ['s1','s2','s3'].forEach(id => document.getElementById(id).classList.remove('on'));
+    ['d1','d2','d3'].forEach(id => document.getElementById(id).classList.remove('on'));
+    document.getElementById('s3').classList.add('on');
+    document.getElementById('d3').classList.add('on');
+  }
+}
+
+function sFinish() {
+  const name = document.getElementById('inp-name').value.trim();
+  if (!name) { sBack(); return; }
+  const taste  = getSel('#taste-c');
+  const diet   = getSel('#diet-c');
+  const exp    = document.querySelector('#exp-c .exp-card.on')?.dataset.v || 'beginner';
+  profile = { name, taste, diet, exp, history: [], sessions: 0, portionSize: 'normal', savedRecipes: [], recentRecipes: [] };
+  saveP();
+  greet();
+  renderDashboards();
+  go('home');
+}
+
+function getSel(sel) {
+  return Array.from(document.querySelectorAll(sel + ' .chip.on')).map(c => c.dataset.v);
+}
+
+// ══════════════════════════════════════
+// CHIPS + SELECTORS
+// ══════════════════════════════════════
+function tog(el) { el.classList.toggle('on'); }
+
+function selExp(el, isSettings) {
+  const parent = isSettings ? '#set-exp' : '#exp-c';
+  document.querySelectorAll(parent + ' .exp-card').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function selMood(el) {
+  const wasOn = el.classList.contains('on');
+  document.querySelectorAll('.mood-pill').forEach(p => p.classList.remove('on'));
+  el.classList.toggle('on', !wasOn);
+  curMood = wasOn ? null : el.dataset.m;
+}
+
+// ══════════════════════════════════════
+// INGREDIENTS
+// ══════════════════════════════════════
+function addIng() {
+  const inp = document.getElementById('ing-input');
+  const raw = inp.value.trim().replace(/,$/, '').trim();
+  if (!raw) return;
+  const items = raw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  items.forEach(v => { if (v && !ings.includes(v)) ings.push(v); });
+  renderIngs();
+  inp.value = '';
+  inp.focus();
+}
+
+function removeIng(i) { ings.splice(i, 1); renderIngs(); }
+
+function renderIngs() {
+  document.getElementById('ing-chips').innerHTML = ings.map((ing, i) =>
+    `<div class="ing-chip">${ing}<button onclick="removeIng(${i})" aria-label="Remove ${ing}">×</button></div>`
+  ).join('');
+}
+
+// ══════════════════════════════════════
+// DASHBOARD & RECIPE STORAGE RENDERERS
+// ══════════════════════════════════════
+function renderDashboards() {
+  const sList = document.getElementById('saved-recipes-list');
+  if(savedRecipes.length === 0) {
+    sList.innerHTML = `<p style="font-size:12px; color:var(--ink-dim); font-style:italic;">No saved recipes yet. Tap heart in detail views!</p>`;
+  } else {
+    sList.innerHTML = savedRecipes.map((r, idx) => `
+      <div class="dash-item" onclick="viewStoredRecipe('saved', ${idx})">
+        <div class="dash-item-info">
+          <h5>${escHtml(r.name)}</h5>
+          <p>${escHtml(r.cuisine || 'Custom')} · ${escHtml(r.totalTime || '—')}</p>
+        </div>
+        <span style="color: var(--stretch); font-size:14px;">❤️</span>
+      </div>
+    `).join('');
+  }
+
+  const rList = document.getElementById('recent-recipes-list');
+  if(recentRecipes.length === 0) {
+    rList.innerHTML = `<p style="font-size:12px; color:var(--ink-dim); font-style:italic;">Recipes you click on will appear here.</p>`;
+  } else {
+    rList.innerHTML = recentRecipes.map((r, idx) => `
+      <div class="dash-item" onclick="viewStoredRecipe('recent', ${idx})">
+        <div class="dash-item-info">
+          <h5>${escHtml(r.name)}</h5>
+          <p>Tried/Viewed on ${escHtml(r.dateViewed || 'Recent')}</p>
+        </div>
+        <span style="color: var(--green-mid); font-size:12px;">⏱️</span>
+      </div>
+    `).join('');
+  }
+}
+
+function viewStoredRecipe(type, index) {
+  const r = type === 'saved' ? savedRecipes[index] : recentRecipes[index];
+  detailBackDestination = 'home';
+  document.getElementById('detail-back-btn').textContent = "← Home";
+  showDetail(r);
+}
+
+function toggleSaveCurrentRecipe() {
+  if (!selRecipe) return;
+  const existsIdx = savedRecipes.findIndex(x => x.name.toLowerCase() === selRecipe.name.toLowerCase());
+  const btn = document.getElementById('save-recipe-btn');
+  if (existsIdx > -1) {
+    savedRecipes.splice(existsIdx, 1);
+    btn.textContent = "🤍";
+    toast("Removed from Saved Recipes");
+  } else {
+    savedRecipes.push(selRecipe);
+    btn.textContent = "❤️";
+    toast("Saved to your Personal Book!");
+  }
+  saveP();
+  renderDashboards();
+}
+
+function pushRecentRecipe(r) {
+  const cleanRecipe = JSON.parse(JSON.stringify(r));
+  cleanRecipe.dateViewed = new Date().toLocaleDateString();
+  recentRecipes = recentRecipes.filter(x => x.name.toLowerCase() !== cleanRecipe.name.toLowerCase());
+  recentRecipes.unshift(cleanRecipe);
+  if(recentRecipes.length > 8) recentRecipes.pop();
+  saveP();
+  renderDashboards();
+}
+
+// ══════════════════════════════════════
+// HOME GREETING
+// ══════════════════════════════════════
+function greet() {
+  if (!profile) return;
+  const h = new Date().getHours();
+  const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const el = document.getElementById('h-greet');
+  if (el) el.textContent = `${g}, ${profile.name}! 👋`;
+}
+
+// ══════════════════════════════════════
+// FIND RECIPES
+// ══════════════════════════════════════
+async function findRecipes() {
+  if (!ings.length) { toast('Add at least one ingredient first!'); return; }
+  convo = [];
+  go('loading');
+  rotateLoadMsg();
+
+  const currentPortionStyle = document.getElementById('home-size').value;
+  const currentServings = document.getElementById('home-servings').value || "2";
+
+  const userMsg = `My available ingredients: ${ings.join(', ')}
+Mood for today: ${curMood || 'no preference'}
+Target Portions wanted: ${currentPortionStyle}
+Scale proportions perfectly for: ${currentServings} people.
+Please suggest 5 creative, personalized recipes.`;
+  convo.push({ role: 'user', content: userMsg });
+
+  try {
+    const res = await claudeCall(buildSys(), convo);
+    convo.push({ role: 'assistant', content: JSON.stringify(res) });
+    curRecipes = res.recipes || [];
+    renderSugg(res.message || 'Here\'s what I found!', curRecipes);
+    
+    document.getElementById('detail-back-btn').textContent = "← Recipes";
+    detailBackDestination = 'suggestions';
+    go('suggestions');
+    if (profile) { profile.sessions = (profile.sessions || 0) + 1; saveP(); }
+  } catch(e) {
+    console.error(e);
+    toast('Couldn\'t reach the kitchen — try again!');
+    go('home');
+  }
+}
+
+const loadMsgs = [
+  'Raiding your pantry…\ngive me a moment.',
+  'Thinking beyond the obvious…\nalmost there.',
+  'Scaling your dynamic portions…',
+  'Crafting complementary optional sides…'
+];
+let loadInterval = null;
+function rotateLoadMsg() {
+  let i = 0;
+  const el = document.getElementById('load-txt');
+  if (el) el.innerHTML = loadMsgs[0].replace('\n','<br>');
+  clearInterval(loadInterval);
+  loadInterval = setInterval(() => {
+    i = (i + 1) % loadMsgs.length;
+    if (el) el.innerHTML = loadMsgs[i].replace('\n','<br>');
+  }, 2200);
+}
+
+// ══════════════════════════════════════
+// MULTI-TURN CHAT
+// ══════════════════════════════════════
+async function sendChat() {
+  const inp = document.getElementById('chat-in');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = '';
+  const btn = document.getElementById('chat-go');
+  btn.disabled = true;
+
+  convo.push({ role: 'user', content: msg });
+
+  const scroll = document.getElementById('sugg-scroll');
+  const ub = document.createElement('div');
+  ub.className = 'user-bubble';
+  ub.textContent = msg;
+  scroll.appendChild(ub);
+  scroll.scrollTop = scroll.scrollHeight;
+
+  try {
+    const res = await claudeCall(buildSys(), convo);
+    convo.push({ role: 'assistant', content: JSON.stringify(res) });
+    if (res.message) document.getElementById('bot-bubble').textContent = res.message;
+    if (res.recipes && res.recipes.length) {
+      curRecipes = res.recipes;
+      document.getElementById('r-cards').innerHTML = '';
+      renderCards(res.recipes);
+    }
+  } catch(e) { console.error(e); toast('Something went wrong — try again.'); }
+
+  btn.disabled = false;
+  scroll.scrollTop = scroll.scrollHeight;
+}
+
+// ══════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════
+function renderSugg(msg, recs) {
+  document.getElementById('bot-bubble').textContent = msg;
+  document.getElementById('r-cards').innerHTML = '';
+  renderCards(recs);
+  clearInterval(loadInterval);
+}
+
+function renderCards(recs) {
+  const container = document.getElementById('r-cards');
+  recs.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'recipe-card';
+    div.onclick = () => showDetail(r);
+
+    const score = r.matchScore || 0;
+    const filled = Math.round(score / 10);
+    const segs = Array.from({length: 10}, (_, i) =>
+      `<div class="lseg${i < filled ? ' on' : ''}"></div>`
+    ).join('');
+
+    div.innerHTML = `
+      <div class="card-top">
+        <div class="card-name">${escHtml(r.name || 'Untitled')}</div>
+        <div class="card-score">
+          <span class="card-score-n">${score}%</span>
+          <span class="card-score-l">match</span>
+        </div>
+      </div>
+      <p class="card-desc">${escHtml(r.description || '')}</p>
+      <div class="card-tags">
+        ${r.totalTime ? `<span class="tag">⏱ ${escHtml(r.totalTime)}</span>` : ''}
+        ${r.difficulty ? `<span class="tag">${escHtml(r.difficulty)}</span>` : ''}
+        ${r.cuisine ? `<span class="tag">${escHtml(r.cuisine)}</span>` : ''}
+        ${r.sideDish ? `<span class="tag" style="background:var(--green-tint); color:var(--green)">🥗 Side Incl.</span>` : ''}
+        ${r.isStretchPick ? '<span class="stretch-tag">✦ Try something new</span>' : ''}
+      </div>
+      ${r.matchReason ? `<p class="card-why">${escHtml(r.matchReason)}</p>` : ''}
+      ${r.isStretchPick && r.stretchReason ? `<p class="card-stretch-why">✦ ${escHtml(r.stretchReason)}</p>` : ''}
+      <div class="leaf-meter">${segs}</div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════
+// DETAIL VIEW
+// ══════════════════════════════════════
+function showDetail(r) {
+  selRecipe = r;
+  clearInterval(loadInterval);
+  pushRecentRecipe(r);
+
+  // Update Save Icon Heart
+  const savedIdx = savedRecipes.findIndex(x => x.name.toLowerCase() === r.name.toLowerCase());
+  document.getElementById('save-recipe-btn').textContent = savedIdx > -1 ? "❤️" : "🤍";
+
+  document.getElementById('d-hero').innerHTML = `
+    <h1>${escHtml(r.name || 'Recipe')}</h1>
+    <p class="detail-tagline">${escHtml(r.description || '')}</p>
+    <div class="detail-times">
+      <div class="dt"><div class="dt-n">${escHtml(r.prepTime || '—')}</div><div class="dt-l">Prep</div></div>
+      <div class="dt"><div class="dt-n">${escHtml(r.cookTime || '—')}</div><div class="dt-l">Cook</div></div>
+      <div class="dt"><div class="dt-n">${escHtml(r.totalTime || '—')}</div><div class="dt-l">Total</div></div>
+      <div class="dt"><div class="dt-n" style="text-transform:capitalize">${escHtml(r.difficulty || '—')}</div><div class="dt-l">Level</div></div>
+    </div>
+  `;
+
+  const ingRows = (r.ingredients || []).map(i => `
+    <div class="ing-row-d">
+      <div class="idot ${i.userHas ? 'has' : 'need'}"></div>
+      <span class="ing-n">${escHtml(i.name || '')}</span>
+      <span class="ing-amt">${escHtml(i.amount || '')}</span>
+      ${!i.userHas ? '<span class="ing-need-lbl">need this</span>' : ''}
+    </div>
+  `).join('');
+
+  const steps = (r.steps || []).map((s, i) => `
+    <div class="step-row">
+      <div class="step-n">${i + 1}</div>
+      <div class="step-t">${escHtml(s)}</div>
+    </div>
+  `).join('');
+
+  // Handle Dynamic Optional Side Dish Section
+  let sideDishHtml = '';
+  if (r.sideDish) {
+    sideDishHtml = `
+      <div class="dsec" style="background: var(--green-tint); border-radius: var(--r); margin: 12px 18px; padding:14px;">
+        <h3 style="color: var(--green); font-weight: bold; margin-bottom: 4px;">🥗 Optional Side Dish Partner</h3>
+        <p style="font-size: 14px; font-weight: bold; margin-bottom: 2px;">${escHtml(r.sideDish.name || '')}</p>
+        <p style="font-size: 12.5px; color: var(--ink-mid); font-style: italic; margin-bottom: 8px;">${escHtml(r.sideDish.description || '')}</p>
+        <p style="font-size: 12px; color: var(--ink-dim); font-weight: bold;">Side Ingredients:</p>
+        <p style="font-size: 13px; margin-bottom: 8px; font-style: italic; color: var(--ink-mid);">${escHtml((r.sideDish.ingredients || []).join(', '))}</p>
+        <p style="font-size: 12px; color: var(--ink-dim); font-weight: bold;">Quick Preparation:</p>
+        <p style="font-size: 13px; line-height:1.5;">${escHtml(r.sideDish.prepSteps || '')}</p>
+      </div>
+    `;
+  }
+
+  document.getElementById('d-body').innerHTML = `
+    <div class="dsec">
+      <h3>Ingredients</h3>
+      <div style="display:flex;gap:14px;font-size:10.5px;color:var(--ink-dim);font-style:italic;margin-bottom:9px">
+        <span>● Green: you have it &nbsp;● Orange: you'll need it</span>
+      </div>
+      ${ingRows || '<p style="font-size:13px;color:var(--ink-dim);font-style:italic">No ingredient list available.</p>'}
+    </div>
+    
+    ${sideDishHtml}
+
+    <div class="dsec">
+      <h3>How to make it</h3>
+      ${steps || '<p style="font-size:13px;color:var(--ink-dim);font-style:italic">No steps available.</p>'}
+    </div>
+    ${r.tips ? `<div class="dsec"><h3>Tips &amp; swaps</h3><div class="tips-box">${escHtml(r.tips)}</div></div>` : ''}
+  `;
+
+  go('detail');
+}
+
+// ══════════════════════════════════════
+// FEEDBACK
+// ══════════════════════════════════════
+function iMadeThis() {
+  const el = document.getElementById('fb-title');
+  if (el) el.textContent = `How was the ${selRecipe?.name || 'dish'}?`;
+  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('.again-btn').forEach(b => b.classList.remove('on'));
+  
+  document.getElementById('fb-custom-adds').value = '';
+  const notes = document.getElementById('fb-notes');
+  if (notes) notes.value = '';
+  go('feedback');
+}
+
+function selRating(el) {
+  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function selAgain(el) {
+  document.querySelectorAll('.again-btn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function submitFb() {
+  const rating = document.querySelector('.emoji-btn.on')?.dataset.r;
+  if (!rating) { toast('Please rate the recipe!'); return; }
+  const again = document.querySelector('.again-btn.on')?.dataset.a || '—';
+  const customAdds = document.getElementById('fb-custom-adds')?.value.trim() || '';
+  const notes = document.getElementById('fb-notes')?.value.trim() || '';
+
+  if (profile) {
+    profile.history = profile.history || [];
+    profile.history.push({
+      recipe: selRecipe?.name || 'Unknown',
+      cuisine: selRecipe?.cuisine || '',
+      rating, again, notes, customAdds,
+      date: new Date().toISOString().slice(0, 10)
+    });
+    if (profile.history.length > 40) profile.history = profile.history.slice(-40);
+    saveP();
+  }
+  toast('Saved! I\'ll remember your adjustments. 🌿');
+  go('home');
+}
+
+// ══════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════
+function goSettings() {
+  if (!profile) return;
+  document.getElementById('set-name').value = profile.name || '';
+  document.getElementById('set-size').value = profile.portionSize || 'normal';
+  document.querySelectorAll('#set-taste .chip').forEach(c =>
+    c.classList.toggle('on', (profile.taste || []).includes(c.dataset.v)));
+  document.querySelectorAll('#set-diet .chip').forEach(c =>
+    c.classList.toggle('on', (profile.diet || []).includes(c.dataset.v)));
+  document.querySelectorAll('#set-exp .exp-card').forEach(c =>
+    c.classList.toggle('on', c.dataset.v === profile.exp));
+  const keyEl = document.getElementById('set-key');
+  if (keyEl) keyEl.value = localStorage.getItem('pr_groq_key') || '';
+  go('settings');
+}
+
+function saveSettings() {
+  const n = document.getElementById('set-name').value.trim();
+  if (n) profile.name = n;
+  profile.portionSize = document.getElementById('set-size').value;
+  profile.taste = getSel('#set-taste');
+  profile.diet  = getSel('#set-diet');
+  profile.exp   = document.querySelector('#set-exp .exp-card.on')?.dataset.v || profile.exp;
+  
+  document.getElementById('home-size').value = profile.portionSize;
+  const newKey = document.getElementById('set-key')?.value.trim();
+  if (newKey) localStorage.setItem('pr_groq_key', newKey);
+  saveP();
+  greet();
+  toast('Profile saved! 🌿');
+  go('home');
+}
+
+function resetAll() {
+  if (!confirm('This will erase your profile and all feedback. Are you sure?')) return;
+  try { localStorage.removeItem('pr_v2'); } catch(e) {}
+  profile = null; ings = []; curMood = null; curRecipes = []; selRecipe = null; convo = [];
+  savedRecipes = []; recentRecipes = [];
+  
+  // Reset setup form
+  ['s1','s2','s3'].forEach(id => document.getElementById(id).classList.remove('on'));
+  ['d1','d2','d3'].forEach(id => document.getElementById(id).classList.remove('on'));
+  document.getElementById('s1').classList.add('on');
+  document.getElementById('d1').classList.add('on');
+  document.getElementById('inp-name').value = '';
+  document.querySelectorAll('#taste-c .chip, #diet-c .chip').forEach(c => c.classList.remove('on'));
+  document.querySelectorAll('#exp-c .exp-card').forEach(c => c.classList.remove('on'));
+  const beg = document.querySelector('#exp-c [data-v="beginner"]');
+  if (beg) beg.classList.add('on');
+  go('setup');
+}
+
+// ══════════════════════════════════════
+// SYSTEM PROMPT
+// ══════════════════════════════════════
+function buildSys() {
+  const fb = (profile?.history || []).slice(-15).map(h =>
+    `- "${h.recipe}" (${h.cuisine||''}): rated "${h.rating}", make again: ${h.again}.${h.notes ? ` feedback: "${h.notes}"` : ''}.${h.customAdds ? ` Extranous things user added off-recipe: "${h.customAdds}"` : ''}`
+  ).join('\n') || 'No feedback history yet.';
+
+  const recentNames = recentRecipes.map(r => `"${r.name}"`).join(', ') || 'none';
+
+  return `You are Pantry Raider — a warm, enthusiastic AI food companion who suggests creative, personalized recipes based on what someone has in their pantry. Think of yourself as a brilliant foodie best friend who actually listens.
+
+PERSONALITY: Casual, encouraging, genuinely excited about food. Use the person's name when it fits naturally. Keep the tone conversational and fun.
+
+CRITICAL DISH EXCLUSION RULE:
+- NEVER suggest or repeat any of these recently cooked/viewed recipes: [${recentNames}]. Prioritize entirely novel ideas!
+
+HARD RULES — never break these:
+1. NEVER put the most predictable recipe first. If someone gives pasta + tomato sauce → suggest baked pasta, pasta frittata, cold pasta salad, or a pesto variant BEFORE plain spaghetti. The obvious option can appear, but must sit lower in the list.
+2. Always include exactly one "stretch pick" (isStretchPick: true) — something genuinely outside the user's usual comfort zone, with a warm, specific reason why they might love it.
+3. Rank suggestions using the user's taste palette, cooking experience, today's mood, and past feedback. Beginners never get technically complex recipes ranked first.
+4. Vary cuisines, cooking methods, and dish formats across suggestions. Five pasta dishes for a pasta input is a failure.
+5. Use only the user's provided ingredients, plus a maximum of 2 common pantry staples (oil, salt, pepper, flour, eggs, butter, garlic).
+6. Produce detailed, practical cooking steps — not vague instructions.
+7. Scale amounts and instructions according to the target portion setting and seating sizes provided below. If "hearty/big", increase component sizes generously.
+8. Every single recipe MUST include an optional complementary side dish structure ("sideDish") with clean ingredient items and quick steps to make it if they wish to accompany the meal!
+
+USER PROFILE:
+- Name: ${profile?.name || 'Friend'}
+- Taste palette: ${(profile?.taste||[]).join(', ') || 'not specified'}
+- Dietary restrictions: ${(profile?.diet||[]).join(', ') || 'none'}
+- Cooking experience: ${profile?.exp || 'beginner'}
+- Sessions completed: ${profile?.sessions || 0}
+
+FEEDBACK & PALATE PREFERENCE HISTORY (use custom modifications to optimize taste profiling):
+${fb}
+
+TODAY — Mood: ${curMood || 'no preference'} | Ingredients: ${ings.join(', ')}
+
+Respond with ONLY valid JSON — no markdown fences, no extra text. For initial recipe requests:
+{
+  "message": "1–2 sentence friendly intro using the person's name",
+  "recipes": [
+    {
+      "id": "r1",
+      "name": "Recipe Name",
+      "description": "One enticing sentence",
+      "prepTime": "X min",
+      "cookTime": "Y min",
+      "totalTime": "Z min",
+      "matchScore": 88,
+      "matchReason": "Why this fits their profile, portions, and mood",
+      "isStretchPick": false,
+      "stretchReason": null,
+      "difficulty": "easy",
+      "cuisine": "Italian",
+      "ingredients": [
+        {"name": "pasta", "amount": "200g", "userHas": true},
+        {"name": "olive oil", "amount": "2 tbsp", "userHas": false}
+      ],
+      "steps": [
+        "Bring a large pot of generously salted water to a rolling boil.",
+        "..."
+      ],
+      "sideDish": {
+        "name": "Garlic Crisp Salad",
+        "description": "A light side that cleanses the palate.",
+        "ingredients": ["Lettuce", "Lemon juice", "Olive oil"],
+        "prepSteps": "Toss greens together with fresh lemon juice and a drizzle of oil right before serving."
+      },
+      "tips": "Swap olive oil for butter for a richer result."
+    }
+  ]
+}
+
+For follow-up chat responses, include "recipes" only when proposing new options. Otherwise respond with just: { "message": "..." }`;
+}
+
+// ══════════════════════════════════════
+// GROQ API
+// ══════════════════════════════════════
+const GROQ_KEY = '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';
+
+async function claudeCall(system, messages) {
+  const key = localStorage.getItem('pr_groq_key') || GROQ_KEY;
+  const groqMessages = [{ role: 'system', content: system }, ...messages];
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + key
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: 3000,
+      temperature: 0.7,
+      response_format: { type: 'json_object' },
+      messages: groqMessages
+    })
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    let detail = '';
+    try { detail = JSON.parse(err)?.error?.message || err; } catch(_) { detail = err; }
+    toast('API error: ' + detail.slice(0, 80));
+    throw new Error('API ' + res.status + ': ' + err);
+  }
+  const data = await res.json();
+  const raw = data.choices[0].message.content;
+  let clean = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/,'').trim();
+  if (!clean.startsWith('{')) {
+    const match = clean.match(/\{[\s\S]*\}/);
+    if (match) clean = match[0];
+  }
+  try {
+    return JSON.parse(clean);
+  } catch(e) {
+    toast('Bad response from AI \u2014 retrying may help.');
+    throw new Error('JSON parse failed: ' + e.message + '\nRaw: ' + raw.slice(0, 200));
+  }
+}
+
+// ══════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
